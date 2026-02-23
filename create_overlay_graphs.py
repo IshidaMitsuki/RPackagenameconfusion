@@ -406,6 +406,18 @@ for timing_label in TIMING_LABELS:
 if x_cutoff is not None:
     ax.set_xlim(0, x_cutoff)
 
+# y軸上限: x_cutoff 範囲内データの最大値の 5% 増し
+_y_cut_vals = []
+for _tl in TIMING_LABELS:
+    if _tl not in timing_median_data:
+        continue
+    _df = timing_median_data[_tl]['data']
+    if x_cutoff is not None:
+        _df = _df[_df['period'] <= x_cutoff]
+    _y_cut_vals.extend(_df['Downloads'].tolist())
+if _y_cut_vals:
+    ax.set_ylim(0, max(_y_cut_vals) * 1.05)
+
 title = f'タイミング別中央値比較（全分類統合・端カット）\n総パッケージ数: {total_pkgs}'
 ax.set_xlabel('初回公開からの経過期間（30日刻み）', fontsize=14)
 ax.set_ylabel('月別ダウンロード数', fontsize=14)
