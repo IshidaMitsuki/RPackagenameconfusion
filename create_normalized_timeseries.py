@@ -14,7 +14,7 @@ cran_monthly_downloads_from_first.csv を使用する。
 
 入力:
 - packages_classified_2x3.csv : パッケージ分類データ (2×3)
-- ../cran_monthly_downloads_from_first.csv : 30日刻みDLデータ
+- data/cran_monthly_downloads_from_first.csv : 30日刻みDLデータ
 
 出力:
 - overlay_data_2x3.json : 6カテゴリ別の時系列データ
@@ -34,12 +34,10 @@ import pandas as pd
 
 # ── パス設定 ─────────────────────────────────────
 # SCRIPT_DIR = .../Analy_senkou/reorganized/
-# RNOMI_DIR  = .../Rnomi/
 SCRIPT_DIR = Path(__file__).parent
-RNOMI_DIR  = SCRIPT_DIR.parent.parent   # Analy_senkou の親 = Rnomi
 
 CLASSIFIED_FILE = SCRIPT_DIR / 'output' / 'packages_classified_2x3.csv'
-FROM_FIRST_FILE = RNOMI_DIR  / 'cran_monthly_downloads_from_first.csv'   # 30日刻みDLデータ
+FROM_FIRST_FILE = SCRIPT_DIR / 'data' / 'cran_monthly_downloads_from_first.csv'   # 30日刻みDLデータ
 
 OUTPUT_FILE   = SCRIPT_DIR / 'overlay_data_2x3.json'
 PROGRESS_FILE = SCRIPT_DIR / 'timeseries_progress_2x3.json'

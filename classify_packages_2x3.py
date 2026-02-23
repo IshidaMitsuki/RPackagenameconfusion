@@ -30,7 +30,7 @@ print()
 print("データを読み込んでいます...")
 
 # CRANパッケージデータ（既存のダウンロードデータから取得）
-DOWNLOAD_CSV = RNOMI_DIR / "cran_monthly_downloads copy.csv"
+DOWNLOAD_CSV = SCRIPT_DIR / 'data' / "cran_monthly_downloads copy.csv"
 df_downloads = pd.read_csv(DOWNLOAD_CSV)
 
 # パッケージリストを作成（Published, Actual_First_Publicationはダウンロードデータから推定）

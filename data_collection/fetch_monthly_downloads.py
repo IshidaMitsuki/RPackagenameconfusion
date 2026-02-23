@@ -9,14 +9,16 @@ from pathlib import Path
 # ======== 設定 ========
 # 相対パス設定
 # data_collection/ -> reorganized/ -> Analy_senkou/ -> Rnomi/ -> Rdata/ -> R/
-_SCRIPT_DIR            = Path(__file__).parent
-_RNOMI_DIR             = _SCRIPT_DIR.parent.parent.parent
-_R_DIR                 = _SCRIPT_DIR.parent.parent.parent.parent.parent
+_SCRIPT_DIR = Path(__file__).parent
+_DATA_DIR   = _SCRIPT_DIR.parent / 'data'           # reorganized/data/
+_R_DIR      = _SCRIPT_DIR.parent.parent.parent.parent.parent
+
+_DATA_DIR.mkdir(exist_ok=True)
 
 INPUT_CSV             = str(_R_DIR / "cran_official_packages.csv")
-OUTPUT_CSV            = str(_RNOMI_DIR / "cran_monthly_downloads.csv")
-OUTPUT_CSV_FROM_FIRST = str(_RNOMI_DIR / "cran_monthly_downloads_from_first.csv")
-FIRST_DATE_CSV        = str(_RNOMI_DIR / "package_first_download_dates.csv")
+OUTPUT_CSV            = str(_DATA_DIR / "cran_monthly_downloads.csv")
+OUTPUT_CSV_FROM_FIRST = str(_DATA_DIR / "cran_monthly_downloads_from_first.csv")
+FIRST_DATE_CSV        = str(_DATA_DIR / "package_first_download_dates.csv")
 
 START_DATE_DEFAULT = "2012-10-01"  # RStudio CRAN mirrorログ公開開始日（公式）
 BATCH_SIZE = 10
