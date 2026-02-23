@@ -152,7 +152,7 @@ def calc_x_cutoff(sample_counts: dict, threshold_ratio: float = 0.5) -> int | No
 
 
 def finalize_plot(ax, xlabel='初回公開からの経過期間（30日刻み）',
-                  ylabel='月別ダウンロード数', title='', log_scale=True,
+                  ylabel='月別ダウンロード数', title='', log_scale=False,
                   fontsize_axis=14, fontsize_title=14):
     ax.set_xlabel(xlabel, fontsize=fontsize_axis)
     ax.set_ylabel(ylabel, fontsize=fontsize_axis)
@@ -192,7 +192,7 @@ for cat_key in CAT_KEYS:
             marker='o', markersize=4, alpha=0.9)
 
     title = f'{cat_key}\n中央値推移（n={n_pkgs}パッケージ）'
-    finalize_plot(ax, title=title, log_scale=True)
+    finalize_plot(ax, title=title)
 
     out_path = OUTPUT_DIR / f"overlay_individual_{safe_filename}.png"
     plt.tight_layout()
@@ -237,7 +237,7 @@ for cat_key in CAT_KEYS:
             marker=mk, markersize=4, alpha=0.85)
 
 title = f'全6カテゴリ 中央値比較（2分類×3タイミング）\n総パッケージ数: {total_pkgs}'
-finalize_plot(ax, title=title, log_scale=True, fontsize_axis=14, fontsize_title=15)
+finalize_plot(ax, title=title, fontsize_axis=14, fontsize_title=15)
 
 out_path = OUTPUT_DIR / "overlay_all6categories.png"
 plt.tight_layout()
@@ -284,7 +284,7 @@ for official_label in OFFICIAL_LABELS:
             marker='o', markersize=5, alpha=0.85)
 
 title = f'公式誘導あり vs なし 中央値比較（全タイミング統合）\n総パッケージ数: {total_pkgs}'
-finalize_plot(ax, title=title, log_scale=True, fontsize_axis=14, fontsize_title=14)
+finalize_plot(ax, title=title, fontsize_axis=14, fontsize_title=14)
 ax.legend(fontsize=13, loc='best', ncol=1)
 
 out_path = OUTPUT_DIR / "overlay_2categories.png"
@@ -406,16 +406,15 @@ for timing_label in TIMING_LABELS:
 if x_cutoff is not None:
     ax.set_xlim(0, x_cutoff)
 
-ax.set_yscale('log')
-title = f'タイミング別中央値比較（全分類統合・端カット・対数スケール）\n総パッケージ数: {total_pkgs}'
+title = f'タイミング別中央値比較（全分類統合・端カット）\n総パッケージ数: {total_pkgs}'
 ax.set_xlabel('初回公開からの経過期間（30日刻み）', fontsize=14)
-ax.set_ylabel('月別ダウンロード数（対数スケール）', fontsize=14)
+ax.set_ylabel('月別ダウンロード数', fontsize=14)
 ax.set_title(title, fontsize=14, fontweight='bold')
 ax.legend(fontsize=13, loc='best')
-ax.grid(True, alpha=0.3, which='both')
+ax.grid(True, alpha=0.3)
 ax.tick_params(axis='both', which='major', labelsize=13)
 
-out_path = OUTPUT_DIR / "overlay_3timings_cut_log.png"
+out_path = OUTPUT_DIR / "overlay_3timings_cut_linear.png"
 plt.tight_layout()
 plt.savefig(out_path, dpi=300, bbox_inches='tight')
 plt.close()
@@ -457,13 +456,12 @@ for official_label in OFFICIAL_LABELS:
                 marker='s', markersize=5, alpha=0.85)
 
     if has_data:
-        ax.set_yscale('log')
         title = f'{official_label} - タイミング別中央値比較\n総パッケージ数: {total_pkgs}'
         ax.set_xlabel('初回公開からの経過期間（30日刻み）', fontsize=14)
-        ax.set_ylabel('月別ダウンロード数（対数スケール）', fontsize=14)
+        ax.set_ylabel('月別ダウンロード数', fontsize=14)
         ax.set_title(title, fontsize=14, fontweight='bold')
         ax.legend(fontsize=12, loc='best')
-        ax.grid(True, alpha=0.3, which='both')
+        ax.grid(True, alpha=0.3)
         ax.tick_params(axis='both', which='major', labelsize=13)
 
         safe = official_label.replace('/', '_').replace(' ', '_')

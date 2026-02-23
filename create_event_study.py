@@ -167,9 +167,9 @@ def add_event_line(ax):
     ax.axvline(x=0, color='red', linestyle='--', linewidth=2.5,
                label='GitHub同名作成時点', alpha=0.7)
 
-def finalize_ax(ax, title, log_scale=True, xlim=None):
+def finalize_ax(ax, title, log_scale=False, xlim=None):
     ax.set_xlabel('GitHub同名作成からの経過期間（30日刻み）', fontsize=14)
-    ax.set_ylabel('月別ダウンロード数' + ('（対数スケール）' if log_scale else ''), fontsize=14)
+    ax.set_ylabel('月別ダウンロード数', fontsize=14)
     if log_scale:
         ax.set_yscale('log')
         ax.yaxis.set_major_formatter(FuncFormatter(fmt_y))
@@ -177,7 +177,7 @@ def finalize_ax(ax, title, log_scale=True, xlim=None):
     if xlim is not None:
         ax.set_xlim(xlim)
     ax.legend(fontsize=13, loc='best')
-    ax.grid(True, alpha=0.3, which='both' if log_scale else 'major')
+    ax.grid(True, alpha=0.3)
     ax.tick_params(axis='both', which='major', labelsize=13)
 
 def save(fig, name):
@@ -203,7 +203,7 @@ for label, frames in event_data.items():
             linewidth=3, color=OFFICIAL_COLORS[label],
             label=f'{label} (n={len(frames)})', marker='o', markersize=4, alpha=0.85)
 add_event_line(ax)
-finalize_ax(ax, 'GitHub同名作成前後のダウンロード推移（2分類比較）', log_scale=True)
+finalize_ax(ax, 'GitHub同名作成前後のダウンロード推移（2分類比較）')
 save(fig, 'event_study_2categories')
 
 # ===== [2] 全体統合（全期間）=====
@@ -216,7 +216,7 @@ if all_frames:
             linewidth=3, color='#2ca02c',
             label=f'全体中央値 (n={total_pkgs})', marker='o', markersize=5)
     add_event_line(ax)
-    finalize_ax(ax, 'GitHub同名作成前後のダウンロード推移（全体統合）', log_scale=True)
+    finalize_ax(ax, 'GitHub同名作成前後のダウンロード推移（全体統合）')
     save(fig, 'event_study_all')
 
 # ===== [3] 各分類個別 =====
@@ -232,7 +232,7 @@ for label, frames in event_data.items():
             linewidth=3, color=OFFICIAL_COLORS[label],
             label=f'中央値 (n={len(frames)})', marker='o', markersize=5)
     add_event_line(ax)
-    finalize_ax(ax, f'GitHub同名作成前後のダウンロード推移（{label}）', log_scale=True)
+    finalize_ax(ax, f'GitHub同名作成前後のダウンロード推移（{label}）')
     safe = label.replace('/', '_')
     save(fig, f'event_study_{safe}')
 
@@ -254,7 +254,7 @@ for zoom in [24, 48, 60, 72]:
     add_event_line(ax)
     finalize_ax(ax,
         f'GitHub同名作成前後のダウンロード推移（2分類比較・±{zoom} periods）',
-        log_scale=True, xlim=(-zoom, zoom))
+        xlim=(-zoom, zoom))
     save(fig, f'event_study_2categories_zoom{zoom}p')
 
 # ===== [5] ズーム版 全体統合 =====
@@ -273,7 +273,7 @@ for zoom in [24, 48]:
     add_event_line(ax)
     finalize_ax(ax,
         f'GitHub同名作成前後のダウンロード推移（全体・±{zoom} periods）',
-        log_scale=True, xlim=(-zoom, zoom))
+        xlim=(-zoom, zoom))
     save(fig, f'event_study_all_zoom{zoom}p')
 
 # ===== [6] 自動カット版 (50%サンプル範囲) =====
@@ -294,7 +294,7 @@ if min_p is not None and max_p is not None:
     add_event_line(ax)
     finalize_ax(ax,
         f'GitHub同名作成前後のダウンロード推移（2分類比較・端カット {min_p}~{max_p}）',
-        log_scale=True, xlim=(min_p, max_p))
+        xlim=(min_p, max_p))
     save(fig, 'event_study_2categories_autocut')
 
 # ===== 完了 =====
