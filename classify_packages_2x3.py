@@ -13,9 +13,11 @@ import re
 from pathlib import Path
 from datetime import datetime
 
-# ベースディレクトリ
-BASE_DIR = Path(r"C:\Users\mitsuki\OneDrive - 信州大学\kenkyu\R\Rdata\Rnomi")
-SCRIPT_DIR = BASE_DIR / "Analy_senkou" / "reorganized"
+# ディレクトリ設定（相対パス）
+SCRIPT_DIR = Path(__file__).parent                       # reorganized/
+RNOMI_DIR  = SCRIPT_DIR.parent.parent                    # Rnomi/
+RDATA_DIR  = SCRIPT_DIR.parent.parent.parent             # Rdata/
+R_DIR      = SCRIPT_DIR.parent.parent.parent.parent      # R/
 OUTPUT_DIR = SCRIPT_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -28,7 +30,7 @@ print()
 print("データを読み込んでいます...")
 
 # CRANパッケージデータ（既存のダウンロードデータから取得）
-DOWNLOAD_CSV = BASE_DIR / "cran_monthly_downloads copy.csv"
+DOWNLOAD_CSV = RNOMI_DIR / "cran_monthly_downloads copy.csv"
 df_downloads = pd.read_csv(DOWNLOAD_CSV)
 
 # パッケージリストを作成（Published, Actual_First_Publicationはダウンロードデータから推定）
@@ -46,7 +48,6 @@ df_packages['Published'] = pd.to_datetime(df_packages['Published'])
 df_packages['Actual_First_Publication'] = df_packages['Published']  # 実質的な初回公開日として使用
 
 # GitHubデータ
-RDATA_DIR = Path(r"c:\Users\mitsuki\OneDrive - 信州大学\kenkyu\R\Rdata")
 with open(RDATA_DIR / "r_repo_details_part1.json", 'r', encoding='utf-8') as f:
     github_data_1 = json.load(f)
 with open(RDATA_DIR / "r_repo_details_part2.json", 'r', encoding='utf-8') as f:
@@ -54,7 +55,7 @@ with open(RDATA_DIR / "r_repo_details_part2.json", 'r', encoding='utf-8') as f:
 github_data = {**github_data_1, **github_data_2}
 
 # 公式リポジトリリスト
-OFFICIAL_PACKAGES_CSV = Path(r"c:\Users\mitsuki\OneDrive - 信州大学\kenkyu\R\cran_official_packages.csv")
+OFFICIAL_PACKAGES_CSV = R_DIR / "cran_official_packages.csv"
 official_df = pd.read_csv(OFFICIAL_PACKAGES_CSV)
 official_repos_set = set()
 for _, row in official_df.iterrows():

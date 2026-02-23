@@ -9,9 +9,9 @@
 import pandas as pd
 from pathlib import Path
 
-# ベースディレクトリ
-BASE_DIR = Path(r"C:\Users\mitsuki\OneDrive - 信州大学\kenkyu\R\Rdata\Rnomi")
-SCRIPT_DIR = BASE_DIR / "Analy_senkou" / "reorganized"
+# ディレクトリ設定（相対パス）
+SCRIPT_DIR = Path(__file__).parent               # reorganized/
+RNOMI_DIR  = SCRIPT_DIR.parent.parent            # Rnomi/
 OUTPUT_DIR = SCRIPT_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -22,7 +22,7 @@ print()
 
 # 既存の分類データを読み込み
 print("既存分類データを読み込んでいます...")
-df = pd.read_csv(BASE_DIR / "Analy_senkou" / "all_packages_classified_2categories.csv")
+df = pd.read_csv(RNOMI_DIR / "Analy_senkou" / "all_packages_classified_2categories.csv")
 print(f"  総パッケージ数: {len(df):,}")
 print()
 
