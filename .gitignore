@@ -1,0 +1,17 @@
+﻿# 大容量データファイル（GitHub 100MB制限超え）
+overlay_data_2x3.json
+
+# 中間データCSV
+*.csv
+output/
+
+# 進捗ファイル
+timeseries_progress_2x3.json
+
+# 画像出力（オプション：コミットしたい場合は削除）
+figures/
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
