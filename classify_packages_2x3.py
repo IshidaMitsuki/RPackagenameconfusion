@@ -29,22 +29,15 @@ print()
 # データ読み込み
 print("データを読み込んでいます...")
 
-# CRANパッケージデータ（既存のダウンロードデータから取得）
-DOWNLOAD_CSV = SCRIPT_DIR / 'data' / "cran_monthly_downloads copy.csv"
-df_downloads = pd.read_csv(DOWNLOAD_CSV)
+# CRANパッケージデータ（初回ダウンロード日データから取得）
+FIRST_DATE_CSV = SCRIPT_DIR / 'data' / "package_first_download_dates.csv"
+df_packages = pd.read_csv(FIRST_DATE_CSV, usecols=['Package', 'First_Download_Date'])
 
-# パッケージリストを作成（Published, Actual_First_Publicationはダウンロードデータから推定）
-df_packages = pd.DataFrame({
-    'Package': df_downloads['Package'].unique()
-})
+# fetch_monthly_downloads.py の複数回実行による重複行を除去
+df_packages = df_packages.drop_duplicates(subset=['Package'], keep='first')
 
-# 最初の出現月を Published として設定
-first_pub = df_downloads.groupby('Package')['Month'].min().reset_index()
-first_pub.columns = ['Package', 'Published']
-df_packages = df_packages.merge(first_pub, on='Package', how='left')
-df_packages['Published'] = pd.to_datetime(df_packages['Published'])
-df_packages['Actual_First_Publication'] = df_packages['Published']  # 実質的な初回公開日として使用
-df_packages['Published'] = pd.to_datetime(df_packages['Published'])
+# Published, Actual_First_Publication を設定
+df_packages['Published'] = pd.to_datetime(df_packages['First_Download_Date'])
 df_packages['Actual_First_Publication'] = df_packages['Published']  # 実質的な初回公開日として使用
 
 # GitHubデータ
