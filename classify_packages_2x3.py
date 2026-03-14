@@ -156,6 +156,7 @@ print("=" * 80)
 print()
 
 timing_category_list = []
+first_nonofficial_date_list = []
 
 for idx, row in df_packages.iterrows():
     if (idx + 1) % 1000 == 0:
@@ -166,15 +167,18 @@ for idx, row in df_packages.iterrows():
     
     if package not in github_data:
         timing_category_list.append('同名なし')
+        first_nonofficial_date_list.append(None)
         continue
     
     repos = github_data[package].get('repositories', [])
     if not repos:
         timing_category_list.append('同名なし')
+        first_nonofficial_date_list.append(None)
         continue
     
     has_before = False
     has_after = False
+    first_nonofficial_date = None
     
     for repo in repos:
         repo_full_name = repo.get('repo_full_name', '').lower()
@@ -201,6 +205,10 @@ for idx, row in df_packages.iterrows():
         created = pd.to_datetime(created_at)
         if created.tz is not None:
             created = created.tz_localize(None)
+
+        # イベントスタディ用: 非公式同名リポジトリの最初の作成日時
+        if first_nonofficial_date is None or created < first_nonofficial_date:
+            first_nonofficial_date = created
         
         if created < actual_publication:
             has_before = True
@@ -214,7 +222,10 @@ for idx, row in df_packages.iterrows():
     else:
         timing_category_list.append('同名なし')
 
+    first_nonofficial_date_list.append(first_nonofficial_date)
+
 df_packages['timing_category'] = timing_category_list
+df_packages['first_nonofficial_date'] = first_nonofficial_date_list
 
 # タイミングカテゴリ別の集計
 print("\nタイミングカテゴリ別の集計:")
