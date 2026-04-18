@@ -113,7 +113,7 @@ build_run_config <- function() {
     est_method = "reg",
     force_control_group = "notyettreated",
     stage1_light_x = FALSE,
-    stage2_x_mode = "no_age",
+    stage2_x_mode = "full",
     stage2_one_step_fallback = FALSE,
     skip_control_selection_when_forced = TRUE,
     att_gt_print_details = FALSE,
@@ -127,7 +127,7 @@ build_run_config <- function() {
     max_post_period = 60L,
     biters = 999L,
     subgroup_never_n = 0L,
-    stage2_retry_faster_mode_on_mem = TRUE,
+    stage2_retry_faster_mode_on_mem = FALSE,
     memory_fallback_to_no_boot = FALSE,
     # 変更候補（運用で切替える可能性がある箇所）
     # - diag_only: 推定を回さず診断CSVのみ出力する
@@ -1304,17 +1304,6 @@ main <- function() {
   if (max_period >= 0L) {
     panel <- panel[panel$period <= max_period, ]
     log_msg("sample option: max_period=", max_period, " applied")
-
-    # 観測窓より後に処置されるコホート (G > max_period) は、
-    # 当該窓内では常に not-yet-treated なので G=0 に再符号化する。
-    # これにより in-window の対照群ロールを保ったまま、計算次元を圧縮する。
-    n_future_treated <- sum(panel$G > max_period, na.rm = TRUE)
-    if (n_future_treated > 0L) {
-      idx_future <- panel$G > max_period
-      panel$G[idx_future] <- 0
-      if ("age_at_event" %in% names(panel)) panel$age_at_event[idx_future] <- 0
-      log_msg("sample option: recoded future-treated to G=0 within window rows=", n_future_treated)
-    }
   }
 
   panel <- apply_stability_filters(panel,
