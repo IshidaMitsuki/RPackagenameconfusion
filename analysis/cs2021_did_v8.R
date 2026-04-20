@@ -758,8 +758,8 @@ run_pipeline <- function(panel, tag, run_config) {
     stage2_full_xformla <- ~ 1
     stage2_full_x_label <- "1"
   } else {
-    stage2_full_xformla <- ~ official + log_dl_pre3
-    stage2_full_x_label <- "official + log_dl_pre3"
+    stage2_full_xformla <- ~ official + age_at_event + log_dl_pre3
+    stage2_full_x_label <- "official + age_at_event + log_dl_pre3"
   }
 
   stage2_fb_xformla <- ~ official + log_dl_pre3
