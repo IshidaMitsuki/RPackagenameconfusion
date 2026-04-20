@@ -120,7 +120,7 @@ build_run_config <- function() {
     est_method = "dr",
     force_control_group = "notyettreated",
     stage1_light_x = FALSE,
-    stage2_x_mode = "full",
+    stage2_x_mode = "no_age",
     stage2_one_step_fallback = FALSE,
     skip_control_selection_when_forced = TRUE,
     att_gt_print_details = FALSE,
@@ -547,8 +547,8 @@ panel_checks <- function(panel) {
 # ---------------------------------------------------------------------------
 run_att_gt <- function(panel, control_group, biters, bstrap, cband,
        base_period, tag, est_method = "dr",
-       xformla = ~ official + age_at_event + log_dl_pre3,
-       xformla_label = "official + age_at_event + log_dl_pre3",
+  xformla = ~ official + age_at_event + log_dl_pre3,
+  xformla_label = "official + age_at_event + log_dl_pre3",
        print_details = FALSE,
      capture_att_gt_console = FALSE,
      faster_mode = FALSE) {
