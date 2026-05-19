@@ -214,6 +214,15 @@ build_panel <- function() {
         stop(paste("packages_classified_2x3.csv missing required columns:", paste(miss, collapse = ", ")))
     cls$first_nonofficial_date <- to_date(cls$first_nonofficial_date)
     cls$First_Download_Date <- to_date(cls$First_Download_Date)
+    if ("first_official_guidance_date" %in% names(cls)) {
+        cls$first_official_guidance_date <- to_date(cls$first_official_guidance_date)
+        has_guidance_date <- TRUE
+    }
+    else {
+        cls$first_official_guidance_date <- as.POSIXct(NA_real_, origin = "1970-01-01", tz = "UTC")
+        has_guidance_date <- FALSE
+        log_msg("build_panel: first_official_guidance_date not found; official_before_event falls back to official_category only")
+    }
     calc_g <- function(first_non, first_dl) {
         if (is.na(first_non)) 
             return(0)
@@ -229,8 +238,20 @@ build_panel <- function() {
     cls$G <- as.numeric(cls$G)
     official_yes_marker <- intToUtf8(c(12354, 12426))
     cls$official <- as.integer(grepl(official_yes_marker, enc2utf8(cls$official_category), fixed = TRUE))
+    cls$official_guidance_ever <- as.integer(!is.na(cls$first_official_guidance_date) | cls$official == 1L)
+    cls$official_before_event <- as.integer(!is.na(cls$first_official_guidance_date) & (cls$G == 0L | cls$first_official_guidance_date < cls$first_nonofficial_date))
+    cls$official_before_event[is.na(cls$official_before_event)] <- 0L
+    if (!isTRUE(has_guidance_date)) {
+        cls$official_before_event <- cls$official
+    }
+    cls$official_after_event <- as.integer(!is.na(cls$first_official_guidance_date) & cls$G > 0L & cls$first_official_guidance_date >= cls$first_nonofficial_date)
+    cls$official_after_event[is.na(cls$official_after_event)] <- 0L
+    log_msg(sprintf("build_panel: official guidance ever=%d before_event=%d after_event=%d",
+        sum(cls$official_guidance_ever == 1L, na.rm = TRUE),
+        sum(cls$official_before_event == 1L, na.rm = TRUE),
+        sum(cls$official_after_event == 1L, na.rm = TRUE)))
     raw <- fromJSON(input_json, simplifyVector = FALSE)
-    info <- cls[, c("Package", "G", "official", "timing_category")]
+    info <- cls[, c("Package", "G", "official", "official_guidance_ever", "official_before_event", "official_after_event", "timing_category")]
     rownames(info) <- info$Package
     rows <- list()
     idx <- 1L
@@ -253,8 +274,11 @@ build_panel <- function() {
             for (rec in recs) {
                 rec_seen <- rec_seen + 1L
                 rows[[idx]] <- data.frame(package = pkg, period = as.integer(rec$period), downloads = as.numeric(rec$Downloads %||% 
-                  0), G = as.numeric(info[pkg, "G"]), official = as.integer(info[pkg, "official"]), timing_cat = as.character(info[pkg, 
-                  "timing_category"]), stringsAsFactors = FALSE)
+                  0), G = as.numeric(info[pkg, "G"]), official = as.integer(info[pkg, "official"]),
+                  official_guidance_ever = as.integer(info[pkg, "official_guidance_ever"]),
+                  official_before_event = as.integer(info[pkg, "official_before_event"]),
+                  official_after_event = as.integer(info[pkg, "official_after_event"]),
+                  timing_cat = as.character(info[pkg, "timing_category"]), stringsAsFactors = FALSE)
                 idx <- idx + 1L
                 if (rec_seen%%200000L == 0L) {
                   log_msg(sprintf("build_panel: records=%d, rows=%d, packages_seen=%d", rec_seen, idx - 1L, pkg_seen))
@@ -340,7 +364,7 @@ build_panel <- function() {
     slope_df <- rbind(slope_t, slope_n)
     panel <- merge(panel, slope_df, by = "package", all.x = TRUE)
     panel$pretrend_slope[is.na(panel$pretrend_slope)] <- median(panel$pretrend_slope, na.rm = TRUE)
-    keep_cols <- c("package", "period", "G", "official", "log_dl", "age_at_event", "log_dl_pre3", "log_dl_pre12", "pretrend_slope", 
+    keep_cols <- c("package", "period", "G", "official", "official_guidance_ever", "official_before_event", "official_after_event", "log_dl", "age_at_event", "log_dl_pre3", "log_dl_pre12", "pretrend_slope", 
         "baseline_log_dl_12", "baseline_slope_12")
     panel <- panel[, keep_cols, drop = FALSE]
     panel$package <- as.factor(panel$package)
@@ -371,8 +395,8 @@ panel_checks <- function(panel) {
     invisible(cohort_sz)
 }
 
-run_att_gt <- function(panel, control_group, biters, bstrap, cband, base_period, tag, est_method = "dr", xformla = ~official + 
-    age_at_event + log_dl_pre3, xformla_label = "official + age_at_event + log_dl_pre3", print_details = FALSE, capture_att_gt_console = FALSE, 
+run_att_gt <- function(panel, control_group, biters, bstrap, cband, base_period, tag, est_method = "dr", xformla = ~official_before_event + 
+    log_dl_pre3 + pretrend_slope, xformla_label = "official_before_event + log_dl_pre3 + pretrend_slope", print_details = FALSE, capture_att_gt_console = FALSE, 
     faster_mode = FALSE) {
     log_msg("att_gt start:", paste0("tag=", tag), paste0("control_group=", control_group), paste0("est_method=", est_method), 
         paste0("xformla=", xformla_label), paste0("faster_mode=", ifelse(isTRUE(faster_mode), "1", "0")), paste0("print_details=", 
@@ -478,16 +502,12 @@ run_pipeline <- function(panel, tag, run_config) {
         est_main <- "dr"
     stage2_mode <- tolower(run_config$stage2_x_mode)
     if (identical(stage2_mode, "pre12")) {
-        xformla <- ~official + log_dl_pre12
-        x_label <- "official + log_dl_pre12"
-    }
-    else if (identical(stage2_mode, "baseline12")) {
-        xformla <- ~official + baseline_log_dl_12 + baseline_slope_12
-        x_label <- "official + baseline_log_dl_12 + baseline_slope_12"
+        xformla <- ~official_before_event + log_dl_pre12
+        x_label <- "official_before_event + log_dl_pre12"
     }
     else {
-        xformla <- ~official + log_dl_pre3 + pretrend_slope
-        x_label <- "official + log_dl_pre3 + pretrend_slope"
+        xformla <- ~official_before_event + log_dl_pre3 + pretrend_slope
+        x_label <- "official_before_event + log_dl_pre3 + pretrend_slope"
     }
     x_info <- drop_constant_terms(xformla, panel, x_label)
     xformla <- x_info$formula
@@ -537,17 +557,17 @@ run_pipeline <- function(panel, tag, run_config) {
 }
 
 run_subgroup <- function(panel_full, run_config) {
-    log_msg("STEP 7: official yes/no subgroup estimation")
+    log_msg("STEP 7: official-before-event yes/no subgroup estimation")
     results <- list()
     subgroup_never_n <- as.integer(run_config$subgroup_never_n)
     if (is.na(subgroup_never_n) || subgroup_never_n < 0L) 
         subgroup_never_n <- 0L
     for (off_val in c(1L, 0L)) {
         label <- if (off_val == 1L) 
-            "official_yes"
-        else "official_no"
-        log_msg(sprintf("[subgroup] %s (official=%d)", label, off_val))
-        sub <- panel_full[panel_full$official == off_val, ]
+            "official_before_yes"
+        else "official_before_no"
+        log_msg(sprintf("[subgroup] %s (official_before_event=%d)", label, off_val))
+        sub <- panel_full[panel_full$official_before_event == off_val, ]
         if (subgroup_never_n > 0L) {
             never_pkgs <- unique(sub$package[sub$G == 0L])
             if (length(never_pkgs) > subgroup_never_n) {
@@ -597,9 +617,9 @@ run_sensitivity <- function(panel_full, run_config) {
     results[["sens_late_gte12"]] <- run_one(sub_late, "sens_late_gte12", run_config)
     for (off_val in c(1L, 0L)) {
         off_label <- if (off_val == 1L) 
-            "official_yes"
-        else "official_no"
-        sub_off <- panel_full[panel_full$official == off_val, ]
+            "official_before_yes"
+        else "official_before_no"
+        sub_off <- panel_full[panel_full$official_before_event == off_val, ]
         cfg_off_never <- run_config
         cfg_off_never$force_control_group <- "nevertreated"
         cfg_off_never$skip_control_selection_when_forced <- TRUE
@@ -707,7 +727,7 @@ main <- function() {
         log_msg("STEP 2-6: overall estimation")
         res_all <- run_pipeline(panel, tag = "overall", run_config = run_config)
         if (run_subgroup_flag) {
-            log_msg("STEP 7: standard official yes/no subgroup estimation")
+            log_msg("STEP 7: standard official-before-event yes/no subgroup estimation")
             run_subgroup(panel, run_config = run_config)
         }
         else {

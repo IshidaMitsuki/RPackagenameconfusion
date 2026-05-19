@@ -21,6 +21,19 @@ R_DIR      = SCRIPT_DIR.parent.parent.parent.parent      # R/
 OUTPUT_DIR = SCRIPT_DIR / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+def resolve_first_existing(candidates, label):
+    """候補パスを順に探索して、最初に存在したファイルを返す。"""
+    for path in candidates:
+        p = Path(path)
+        if p.exists():
+            print(f"  {label}: {p}")
+            return p
+
+    searched = "\n".join([f"    - {Path(p)}" for p in candidates])
+    raise FileNotFoundError(
+        f"{label} が見つかりません。探索パス:\n{searched}"
+    )
+
 print("=" * 80)
 print("パッケージ分類（2x3分類）")
 print("=" * 80)
@@ -40,15 +53,35 @@ df_packages = df_packages.drop_duplicates(subset=['Package'], keep='first')
 df_packages['Published'] = pd.to_datetime(df_packages['First_Download_Date'])
 df_packages['Actual_First_Publication'] = df_packages['Published']  # 実質的な初回公開日として使用
 
+# 互換パス（旧レイアウト）
+workspace_dir = SCRIPT_DIR.parent
+
 # GitHubデータ
-with open(RDATA_DIR / "r_repo_details_part1.json", 'r', encoding='utf-8') as f:
+REPO_PART1_JSON = resolve_first_existing([
+    SCRIPT_DIR / "r_repo_details_part1.json",
+    workspace_dir / "r_repo_details_part1.json",
+    RDATA_DIR / "r_repo_details_part1.json",
+], "GitHubデータ part1")
+
+REPO_PART2_JSON = resolve_first_existing([
+    SCRIPT_DIR / "r_repo_details_part2.json",
+    workspace_dir / "r_repo_details_part2.json",
+    RDATA_DIR / "r_repo_details_part2.json",
+], "GitHubデータ part2")
+
+with open(REPO_PART1_JSON, 'r', encoding='utf-8') as f:
     github_data_1 = json.load(f)
-with open(RDATA_DIR / "r_repo_details_part2.json", 'r', encoding='utf-8') as f:
+with open(REPO_PART2_JSON, 'r', encoding='utf-8') as f:
     github_data_2 = json.load(f)
 github_data = {**github_data_1, **github_data_2}
 
 # 公式リポジトリリスト
-OFFICIAL_PACKAGES_CSV = R_DIR / "cran_official_packages.csv"
+OFFICIAL_PACKAGES_CSV = resolve_first_existing([
+    SCRIPT_DIR / "cran_official_packages.csv",
+    SCRIPT_DIR / "data" / "cran_official_packages.csv",
+    workspace_dir / "cran_official_packages.csv",
+    R_DIR / "cran_official_packages.csv",
+], "公式リポジトリCSV")
 official_df = pd.read_csv(OFFICIAL_PACKAGES_CSV)
 official_repos_set = set()
 for _, row in official_df.iterrows():
@@ -110,6 +143,16 @@ print("=" * 80)
 print()
 
 official_category_list = []
+first_official_guidance_date_list = []
+
+def repo_created_naive(repo):
+    created_at = repo.get('created_at')
+    if not created_at:
+        return None
+    created = pd.to_datetime(created_at)
+    if created.tz is not None:
+        created = created.tz_localize(None)
+    return created
 
 for idx, row in df_packages.iterrows():
     if (idx + 1) % 1000 == 0:
@@ -119,26 +162,41 @@ for idx, row in df_packages.iterrows():
     
     if package not in github_data:
         official_category_list.append('公式へ誘導なし')
+        first_official_guidance_date_list.append(None)
         continue
     
     repos = github_data[package].get('repositories', [])
     if not repos:
         official_category_list.append('公式へ誘導なし')
+        first_official_guidance_date_list.append(None)
         continue
     
     # パッケージ固有のCRAN URLを記載したリポジトリがあるか
     has_package_url = False
+    first_official_guidance_date = None
     for repo in repos:
-        if find_package_url_in_text(repo, package):
+        repo_full_name = repo.get('repo_full_name', '').lower()
+        is_official_guidance_repo = (
+            repo_full_name in official_repos_set or
+            find_package_url_in_text(repo, package)
+        )
+        if is_official_guidance_repo:
             has_package_url = True
-            break
+            created = repo_created_naive(repo)
+            if created is not None and (
+                first_official_guidance_date is None or
+                created < first_official_guidance_date
+            ):
+                first_official_guidance_date = created
     
     if has_package_url:
         official_category_list.append('公式へ誘導あり')
     else:
         official_category_list.append('公式へ誘導なし')
+    first_official_guidance_date_list.append(first_official_guidance_date)
 
 df_packages['official_category'] = official_category_list
+df_packages['first_official_guidance_date'] = first_official_guidance_date_list
 
 # カテゴリ別の集計
 print("\n公式可能性カテゴリ別の集計:")
